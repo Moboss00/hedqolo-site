@@ -821,7 +821,7 @@
         <h2 style="font-size:clamp(26px,3vw,36px); margin:18px 0 16px;">Parlez-nous de votre projet</h2>
         <p style="font-size:15.5px; max-width:420px;">Plus vous nous donnez de contexte, plus notre première réponse sera utile. Comptez deux minutes.</p>
       </div>
-      <form class="reveal" onsubmit="event.preventDefault(); alert('Merci ! Ce formulaire est une démonstration statique — à connecter à votre backend ou service d\'emailing.');">
+      <form class="reveal" id="contact-form" onsubmit="return submitContactForm(event);">
         <div class="form-row">
           <div class="form-group">
             <label for="name">Nom complet *</label>
@@ -838,7 +838,7 @@
         </div>
         <div class="form-group">
           <label>Service souhaité</label>
-          <div class="service-pills">
+          <div class="service-pills" id="service-pills">
             <span class="pill-option active">Développement sur mesure</span>
             <span class="pill-option">Application mobile</span>
             <span class="pill-option">R&amp;D / IA</span>
@@ -850,6 +850,7 @@
           <textarea id="message" rows="4" placeholder="Décrivez votre besoin, vos contraintes, vos objectifs..." required></textarea>
         </div>
         <button type="submit" class="btn btn-dark" style="width:100%; justify-content:center; margin-top:8px;">Envoyer la demande →</button>
+        <p style="font-size:12.5px; text-align:center; margin-top:14px;">En cliquant, votre application mail par défaut s'ouvrira avec le message pré-rempli, adressé à dev@hedqolo.com.</p>
       </form>
     </div>
   </div>
@@ -910,6 +911,33 @@
     els.forEach(el=>io.observe(el));
   } else {
     document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));
+  }
+
+  // Contact form -> mailto:
+  function submitContactForm(event){
+    event.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const company = document.getElementById('company').value.trim();
+    const message = document.getElementById('message').value.trim();
+    const activePill = document.querySelector('#service-pills .pill-option.active');
+    const service = activePill ? activePill.textContent.trim() : 'Non précisé';
+
+    const subject = `Nouvelle demande — ${name}${company ? ' (' + company + ')' : ''}`;
+    const bodyLines = [
+      `Nom : ${name}`,
+      `Email : ${email}`,
+      company ? `Entreprise : ${company}` : null,
+      `Service souhaité : ${service}`,
+      '',
+      'Message :',
+      message
+    ].filter(Boolean);
+    const body = bodyLines.join('\n');
+
+    const mailto = `mailto:dev@hedqolo.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+    return false;
   }
 
   // Mobile menu toggle
