@@ -824,20 +824,20 @@
         <h2 style="font-size:clamp(26px,3vw,36px); margin:18px 0 16px;">Parlez-nous de votre projet</h2>
         <p style="font-size:15.5px; max-width:420px;">Plus vous nous donnez de contexte, plus notre première réponse sera utile. Comptez deux minutes.</p>
       </div>
-      <form class="reveal" id="contact-form" onsubmit="return submitContactForm(event);">
+      <form class="reveal" id="contact-form" action="https://formspree.io/f/xkjnnnky" method="POST" onsubmit="return submitContactForm(event);">
         <div class="form-row">
           <div class="form-group">
             <label for="name">Nom complet *</label>
-            <input type="text" id="name" placeholder="Dani Mabiala" required>
+            <input type="text" id="name" name="name" placeholder="Dani Mabiala" required>
           </div>
           <div class="form-group">
             <label for="email">Email professionnel *</label>
-            <input type="email" id="email" placeholder="dani@entreprise.com" required>
+            <input type="email" id="email" name="email" placeholder="dani@entreprise.com" required>
           </div>
         </div>
         <div class="form-group">
           <label for="company">Entreprise (optionnel)</label>
-          <input type="text" id="company" placeholder="Nom de l'entreprise">
+          <input type="text" id="company" name="company" placeholder="Nom de l'entreprise">
         </div>
         <div class="form-group">
           <label>Service souhaité</label>
@@ -847,13 +847,15 @@
             <span class="pill-option">R&amp;D / IA</span>
             <span class="pill-option">Je ne sais pas encore</span>
           </div>
+          <input type="hidden" id="service" name="service" value="Développement sur mesure">
         </div>
         <div class="form-group" style="margin-top:20px;">
           <label for="message">Votre projet en quelques lignes *</label>
-          <textarea id="message" rows="4" placeholder="Décrivez votre besoin, vos contraintes, vos objectifs..." required></textarea>
+          <textarea id="message" name="message" rows="4" placeholder="Décrivez votre besoin, vos contraintes, vos objectifs..." required></textarea>
         </div>
-        <button type="submit" class="btn btn-dark" style="width:100%; justify-content:center; margin-top:8px;">Envoyer la demande →</button>
-        <p style="font-size:12.5px; text-align:center; margin-top:14px;">En cliquant, votre application mail par défaut s'ouvrira avec le message pré-rempli, adressé à dev@hedqolo.com.</p>
+        <input type="hidden" name="_subject" id="form-subject" value="Nouvelle demande — site Hedqolo">
+        <button type="submit" id="submit-btn" class="btn btn-dark" style="width:100%; justify-content:center; margin-top:8px;">Envoyer la demande →</button>
+        <p id="form-status" style="font-size:13px; text-align:center; margin-top:14px;"></p>
       </form>
     </div>
   </div>
@@ -919,30 +921,47 @@
     document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));
   }
 
-  // Contact form -> mailto:
-  function submitContactForm(event){
+  // Contact form -> Formspree
+  async function submitContactForm(event){
     event.preventDefault();
-    const name = document.getElementById('name').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const company = document.getElementById('company').value.trim();
-    const message = document.getElementById('message').value.trim();
+    const form = document.getElementById('contact-form');
+    const btn = document.getElementById('submit-btn');
+    const status = document.getElementById('form-status');
     const activePill = document.querySelector('#service-pills .pill-option.active');
     const service = activePill ? activePill.textContent.trim() : 'Non précisé';
+    document.getElementById('service').value = service;
 
-    const subject = `Nouvelle demande — ${name}${company ? ' (' + company + ')' : ''}`;
-    const bodyLines = [
-      `Nom : ${name}`,
-      `Email : ${email}`,
-      company ? `Entreprise : ${company}` : null,
-      `Service souhaité : ${service}`,
-      '',
-      'Message :',
-      message
-    ].filter(Boolean);
-    const body = bodyLines.join('\n');
+    const name = document.getElementById('name').value.trim();
+    const company = document.getElementById('company').value.trim();
+    document.getElementById('form-subject').value = `Nouvelle demande — ${name}${company ? ' (' + company + ')' : ''}`;
 
-    const mailto = `mailto:dev@hedqolo.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailto;
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours...';
+    status.style.color = 'var(--ink-soft)';
+    status.textContent = '';
+
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'Accept': 'application/json' }
+      });
+      if (response.ok) {
+        form.reset();
+        document.querySelectorAll('.pill-option').forEach((p,i)=>p.classList.toggle('active', i===0));
+        document.getElementById('service').value = 'Développement sur mesure';
+        status.style.color = 'var(--teal)';
+        status.textContent = 'Message envoyé ! Nous revenons vers vous sous 24h ouvrées.';
+        btn.textContent = 'Envoyer la demande →';
+      } else {
+        throw new Error('Erreur d\'envoi');
+      }
+    } catch (err) {
+      status.style.color = '#F87171';
+      status.textContent = 'Une erreur est survenue. Réessayez ou écrivez-nous directement à dev@hedqolo.com.';
+      btn.textContent = 'Envoyer la demande →';
+    }
+    btn.disabled = false;
     return false;
   }
 
